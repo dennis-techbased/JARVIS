@@ -1,0 +1,38 @@
+from openai import OpenAI
+import os
+import time
+from tools import search_jobs, write_proposal
+from policies import allowed_to_act
+
+client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
+
+class Agent:
+    def run(self):
+        while True:
+            task = self.think()
+
+            if allowed_to_act(task):
+                result = self.act(task)
+                print(result)
+            else:
+                print("⛔ Needs human approval:", task)
+
+            time.sleep(300)
+
+    def think(self):
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an autonomous work agent."},
+                {"role": "user", "content": "Find online work and decide next action."}
+            ]
+        )
+        return response.choices[0].message.content
+
+    def act(self, task):
+        if "job" in task.lower():
+            return search_jobs(task)
+        if "proposal" in task.lower():
+            return write_proposal(task)
+        return "🤔 No action taken"
+
